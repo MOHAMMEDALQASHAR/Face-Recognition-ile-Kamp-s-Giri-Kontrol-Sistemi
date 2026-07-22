@@ -1,0 +1,182 @@
+{# نرث القالب الأساسي layout.html (الهيكل العام للموقع) #}
+{% extends "layout.html" %}
+
+{# عنوان الصفحة الذي يظهر في التبويب بالمتصفح #}
+{% block title %}{{ t('admin_login_title') }} - {{ t('page_title') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center justify-content-center">
+        <div class="col-md-5 col-lg-4">
+
+            {# بطاقة بتصميم سيبراني (واجهة تسجيل الدخول) #}
+            <div class="cyber-card">
+
+                {# العنوان والأيقونة #}
+                <div class="text-center mb-4">
+                    <div class="mb-3">
+                        {# أيقونة الدرع مع لون متدرج #}
+                        <i class="fas fa-shield-alt" style="font-size: 4rem; background: linear-gradient(45deg, #ff00ff, #ff66ff);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;">
+                        </i>
+                    </div>
+
+                    {# عنوان الصفحة #}
+                    <h1 class="neon-text mb-2">
+                        {{ t('admin_login_title') }}
+                    </h1>
+
+                    {# نص توضيحي بسيط #}
+                    <p class="text-muted">{{ t('secure_auth_required') }}</p>
+                </div>
+
+                {# فورم تسجيل الدخول (الإدارة) #}
+                <form id="adminLoginForm">
+
+                    {# حقل إدخال كلمة المرور #}
+                    <div class="mb-4">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-key"></i> {{ t('admin_password') }}
+                        </label>
+
+                        {# إدخال كلمة المرور مع منع الإكمال التلقائي الخاطئ #}
+                        <input type="password" class="form-control" id="password" name="password"
+                            placeholder="{{ t('enter_password') }}" required autocomplete="current-password">
+                    </div>
+
+                    {# زر تسجيل الدخول #}
+                    <button type="submit" class="btn btn-cyber w-100 mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        {{ t('login_btn') }}
+                    </button>
+
+                    {# زر الرجوع إلى الصفحة الرئيسية #}
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        {{ t('back') }}
+                    </a>
+                </form>
+
+                {# رسالة توضيحية أسفل الفورم #}
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-lock"></i>
+                        {{ t('authorized_personnel') }}
+                    </small>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# CSS إضافي خاص بهذه الصفحة فقط #}
+{% block extra_css %}
+<style>
+    /* Background Image Override */
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url("{{ url_for('static', filename='images/admin.webp') }}") no-repeat center center;
+        background-size: cover;
+        opacity: 0.5;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    /* تنسيق زر الرجوع */
+    .btn-outline-secondary {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 12px;
+        transition: all 0.3s ease;
+    }
+
+    /* تأثير عند تمرير الماوس على الزر */
+    .btn-outline-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{# JavaScript خاص بالتحقق من تسجيل الدخول #}
+{% block extra_js %}
+<script>
+
+    /* الاستماع لحدث إرسال الفورم */
+    document.getElementById('adminLoginForm').addEventListener('submit', async function (e) {
+        e.preventDefault(); // منع إعادة تحميل الصفحة
+
+        // جلب كلمة المرور من الحقل
+        const password = document.getElementById('password').value;
+
+        /* إظهار رسالة تحميل باستخدام SweetAlert */
+        Swal.fire({
+            title: "{{ t('authenticating') }}",
+            html: "{{ t('please_wait') }}",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            /* إرسال كلمة المرور للسيرفر للتحقق */
+            const response = await fetch('/admin_auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password })
+            });
+
+            // قراءة الرد بصيغة JSON
+            const data = await response.json();
+
+            if (data.success) {
+                /* نجاح الدخول */
+                Swal.fire({
+                    icon: 'success',
+                    title: "{{ t('access_granted') }}",
+                    text: "{{ t('redirecting') }}",
+                    timer: 1000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // تحويل المستخدم للوحة التحكم
+                    window.location.href = data.redirect;
+                });
+            } else {
+                /* فشل كلمة المرور */
+                Swal.fire({
+                    icon: 'error',
+                    title: "{{ t('access_denied') }}",
+                    text: data.message || "{{ t('invalid_password') }}"
+                });
+
+                // تفريغ الحقل
+                document.getElementById('password').value = '';
+            }
+
+        } catch (error) {
+            /* في حال حدوث خطأ في الاتصال */
+            Swal.fire({
+                icon: 'error',
+                title: "{{ t('error') }}",
+                text: 'Authentication failed. Please try again.'
+            });
+        }
+    });
+
+    // عند فتح الصفحة يتم التركيز تلقائيًا على حقل كلمة المرور
+    document.getElementById('password').focus();
+
+</script>
+{% endblock %}

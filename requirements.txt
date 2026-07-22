@@ -1,0 +1,12 @@
+Flask
+flask-cors
+firebase_admin
+opencv-python
+mediapipe
+pandas
+numpy
+matplotlib
+gunicorn
+deepface
+pymongo
+dnspython

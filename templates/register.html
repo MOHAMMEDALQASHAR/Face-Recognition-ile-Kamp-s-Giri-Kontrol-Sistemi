@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ t('student_registration') }} - {{ t('page_title') }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="text-center mb-4">
+        <h1 class="neon-text">
+            <i class="fas fa-user-plus"></i>
+            {{ t('student_registration') }}
+        </h1>
+        <p class="text-muted">{{ t('capture_face_instruction') }}</p>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> {{ t('back') }}
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left: Camera Feed -->
+        <div class="col-lg-6">
+            <div class="cyber-card">
+                <h4 class="text-center mb-3" style="color: var(--neon-cyan);">
+                    <i class="fas fa-camera"></i> {{ t('live_feed') }}
+                </h4>
+                <div class="video-container">
+                    <img src="{{ url_for('video_feed') }}" alt="Camera Feed" id="videoFeed">
+                </div>
+                <div class="text-center mt-3">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        {{ t('position_face') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Registration Form -->
+        <div class="col-lg-6">
+            <div class="cyber-card">
+                <h4 class="text-center mb-4" style="color: var(--neon-cyan);">
+                    <i class="fas fa-id-card"></i> {{ t('student_info') }}
+                </h4>
+
+                <form id="registrationForm">
+                    <div class="mb-3">
+                        <label for="studentName" class="form-label">
+                            <i class="fas fa-user"></i> {{ t('full_name') }}
+                        </label>
+                        <input type="text" class="form-control" id="studentName" name="name"
+                            placeholder="{{ t('enter_name') }}" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="studentId" class="form-label">
+                            <i class="fas fa-id-badge"></i> {{ t('student_id') }}
+                        </label>
+                        <input type="text" class="form-control" id="studentId" name="student_id"
+                            placeholder="{{ t('enter_id') }}" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-cyber w-100">
+                        <i class="fas fa-camera-retro me-2"></i>
+                        {{ t('capture_register_btn') }}
+                    </button>
+                </form>
+
+                <div class="mt-4 p-3"
+                    style="background: rgba(0, 255, 255, 0.1); border-left: 3px solid var(--neon-cyan); border-radius: 5px;">
+                    <h6 style="color: var(--neon-cyan);">
+                        <i class="fas fa-lightbulb"></i> {{ t('instructions') }}
+                    </h6>
+                    <ul class="mb-0 text-muted small">
+                        <li>{{ t('instruction_lighting') }}</li>
+                        <li>{{ t('instruction_look') }}</li>
+                        <li>{{ t('instruction_wait') }}</li>
+                        <li>{{ t('instruction_fill') }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-outline-secondary {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.7);
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--neon-cyan);
+        color: var(--neon-cyan);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('registrationForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('studentName').value.trim();
+        const studentId = document.getElementById('studentId').value.trim();
+
+        if (!name || !studentId) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Info',
+                text: 'Please fill in all fields'
+            });
+            return;
+        }
+
+        // Show loading
+        Swal.fire({
+            title: "{{ t('authenticating') }}",
+            html: "{{ t('please_wait') }}",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const response = await fetch('/api/capture_face', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, student_id: studentId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: "{{ t('success') }}",
+                    html: `
+                    <p>${data.message}</p>
+                    <p class="text-muted mb-0">Data saved to database</p>
+                `,
+                    confirmButtonText: "{{ t('add_student') }}",
+                    showCancelButton: true,
+                    cancelButtonText: "{{ t('back') }}"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Clear form for next registration
+                        document.getElementById('registrationForm').reset();
+                    } else {
+                        window.location.href = '/dashboard';
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: "{{ t('error') }}",
+                    text: data.message
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: "{{ t('error') }}",
+                text: 'Failed to register student'
+            });
+        }
+    });
+</script>
+{% endblock %}

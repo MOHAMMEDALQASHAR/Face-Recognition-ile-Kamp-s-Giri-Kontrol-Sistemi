@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ t('page_title') }} - {{ t('gateway') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .border-cyan {
+        border-color: var(--neon-cyan) !important;
+    }
+
+    .portal-card {
+        background: rgba(26, 26, 46, 0.6);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: all 0.4s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        min-height: 450px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .portal-card::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s ease, height 0.6s ease;
+        opacity: 0.1;
+    }
+
+    .admin-portal::before {
+        background: radial-gradient(circle, var(--neon-blue) 0%, transparent 70%);
+    }
+
+    .professor-portal::before {
+        background: radial-gradient(circle, var(--neon-cyan) 0%, transparent 70%);
+    }
+
+    .portal-card:hover::before {
+        width: 400px;
+        height: 400px;
+    }
+
+    .portal-card:hover {
+        transform: translateY(-15px) scale(1.03);
+        box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+    }
+
+    .admin-portal:hover {
+        border-color: var(--neon-blue);
+        box-shadow: 0 0 50px rgba(0, 153, 255, 0.5);
+    }
+
+    .professor-portal:hover {
+        border-color: #00ffff;
+    }
+
+    .portal-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(45deg, var(--neon-cyan), var(--neon-blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .portal-card h2 {
+        color: var(--neon-cyan);
+        margin-bottom: 1rem;
+        font-size: 1.8rem;
+    }
+
+    .admin-portal h2 {
+        background: linear-gradient(45deg, var(--neon-blue), #ffffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .professor-portal h2 {
+        background: linear-gradient(45deg, var(--neon-cyan), var(--neon-blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .portal-features {
+        list-style: none;
+        padding: 0;
+        text-align: left;
+        margin: 2rem auto;
+        max-width: 300px;
+    }
+
+    .portal-features li {
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    .portal-features li i {
+        color: var(--neon-cyan);
+        margin-right: 10px;
+        width: 20px;
+    }
+
+    .admin-portal .portal-features li i {
+        color: var(--neon-blue);
+    }
+
+    .portal-arrow {
+        font-size: 2rem;
+        color: var(--neon-cyan);
+        margin-top: 1.5rem;
+        animation: pulse-arrow 2s infinite;
+    }
+
+    @keyframes pulse-arrow {
+
+        0%,
+        100% {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        50% {
+            transform: translateX(10px);
+            opacity: 0.7;
+        }
+    }
+
+    /* Background Image Override */
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url("{{ url_for('static', filename='images/mtm.png') }}") no-repeat center center;
+        background-size: cover;
+        /* Cover the entire screen */
+        opacity: 0.5;
+        /* Transparency to let text show clearly */
+        z-index: 0;
+        /* Behind container (z=2) and scanlines (z=1) but above body bg */
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center justify-content-center">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 mb-4 fw-bold"
+                    style="font-family: 'Orbitron', sans-serif; color: #000000; text-shadow: 0 0 15px rgba(255, 255, 255, 0.8); letter-spacing: 1px;">
+
+                    {{ t('campus_access_control')|safe }}
+                </h1>
+            </div>
+
+            <!-- Portal Selection -->
+            <div class="row g-4 justify-content-center">
+                <!-- Admin Portal -->
+                <div class="col-md-5">
+                    <a href="{{ url_for('admin_login') }}" class="text-decoration-none d-block h-100">
+                        <div class="portal-card admin-portal">
+                            <div class="portal-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <h2>{{ t('admin_portal') }}</h2>
+
+                            <ul class="portal-features">
+                                <li><i class="fas fa-users"></i> {{ t('manage_students') }}</li>
+                                <li><i class="fas fa-user-plus"></i> {{ t('add_student') }}</li>
+                            </ul>
+                            <div class="portal-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Professor Portal -->
+                <div class="col-md-5">
+                    <a href="{{ url_for('doctor_login') }}" class="text-decoration-none d-block h-100">
+                        <div class="portal-card professor-portal">
+                            <div class="portal-icon">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                            </div>
+                            <h2>{{ t('professor_portal') }}</h2>
+
+                            <ul class="portal-features">
+                                <li><i class="fas fa-camera"></i> {{ t('real_time_tracking') }}</li>
+                                <li><i class="fas fa-clipboard-check"></i> {{ t('auto_attendance') }}</li>
+                            </ul>
+                            <div class="portal-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="text-center mt-5">
+                <div class="d-inline-flex align-items-center justify-content-center text-start">
+                    <img src="{{ url_for('static', filename='images/Bartin.png') }}" alt="Bartin Logo"
+                        style="height: 120px; opacity: 0.9;" class="me-4">
+                    <div class="d-flex flex-column justify-content-center" style="margin-top: 15px;">
+                        <span
+                            style="font-size: 2.5rem; font-family: 'Arial', sans-serif; font-weight: 800; color: #ffffff; filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); line-height: 1; letter-spacing: -2px;">BARÜ</span>
+                        <span
+                            style="font-size: 0.75rem; font-family: 'Arial', sans-serif; font-weight: 600; color: #ffffff; filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); letter-spacing: 3px; margin-top: 5px; padding-left: 5px;">BARTIN
+                            ÜNİVERSİTESİ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

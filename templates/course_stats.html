@@ -1,0 +1,747 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ t('course_analytics') }} - {{ course_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="cyber-card">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2" style="color: var(--neon-cyan);">
+                            <i class="fas fa-graduation-cap"></i> {{ course_name }}
+                        </h2>
+                        <div class="mt-4">
+                            <h5 class="d-inline-block me-3" style="color: var(--neon-cyan);">
+                                <i class="fas fa-camera"></i> {{ t('ready_to_start') }}?
+                            </h5>
+                            <button onclick="startAttendance()" class="btn-start-session py-2 px-4"
+                                style="font-size: 0.9rem;">
+                                <i class="fas fa-play-circle me-2"></i>
+                                {{ t('start_session') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-home"></i> {{ t('gateway') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards Row 1: Course Progress -->
+
+
+
+
+
+    <!-- Semester Schedule (Detailed Lecture Timeline) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="cyber-card">
+                <h4 style="color: var(--neon-cyan); margin-bottom: 20px;">
+                    <i class="fas fa-calendar-alt"></i> {{ t('attendance_timeline') }}
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-calendar"></i> {{ t('day') }}</th>
+                                <th><i class="fas fa-calendar-day"></i> {{ t('date') }}</th>
+                                <th><i class="fas fa-info-circle"></i> {{ t('status') }}</th>
+                                <th><i class="fas fa-user-check"></i> {{ t('present') }}</th>
+                                <th><i class="fas fa-eye"></i> {{ t('view_details') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lecture in lecture_timeline %}
+                            <tr
+                                class="{% if lecture.status == 'Completed' %}lecture-completed{% else %}lecture-upcoming{% endif %}">
+
+                                <td><strong style="color: var(--neon-cyan);">{{ lecture.turkish_day }}</strong></td>
+                                <td>
+                                    {% if lecture.date %}
+                                    {{ lecture.date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lecture.status == 'Completed' %}
+                                    <span class="badge badge-completed">
+                                        <i class="fas fa-check-circle"></i> {{ t('completed') }}
+                                    </span>
+                                    {% elif lecture.status == 'In Progress' %}
+                                    <span class="badge badge-in-progress">
+                                        <i class="fas fa-spinner fa-pulse"></i> {{ t('in_progress') }}
+                                    </span>
+                                    {% elif lecture.status == 'Ready to Start' %}
+                                    <span class="badge badge-ready">
+                                        <i class="fas fa-play-circle"></i> {{ t('ready_to_start') }}
+                                    </span>
+                                    {% elif lecture.status == 'Upcoming' %}
+                                    <span class="badge badge-upcoming">
+                                        <i class="fas fa-clock"></i> {{ t('upcoming') }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-unknown">{{ t('status') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lecture.present == '-' %}
+                                    <span class="text-muted">—</span>
+                                    {% else %}
+                                    <span class="count-present">{{ lecture.present }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {% if lecture.status in ['Completed', 'In Progress'] and lecture.present != '-' %}
+                                    <button class="btn btn-view-details" data-course-code="{{ course_code }}"
+                                        data-course-name="{{ course_name }}"
+                                        data-lecture-date="{{ lecture.date.strftime('%Y-%m-%d') if lecture.date else '' }}"
+                                        data-week-num="{{ lecture.day_num }}">
+                                        <i class="fas fa-eye"></i> {{ t('view_details') }}
+                                    </button>
+                                    <a href="{{ url_for('export_attendance', course_code=course_code, date_str=lecture.date.strftime('%Y-%m-%d') if lecture.date else '') }}"
+                                        class="btn btn-export-excel" title="Download Excel">
+                                        <i class="fas fa-file-excel"></i> Excel
+                                    </a>
+                                    {% if lecture.status != 'Upcoming' and lecture.date %}
+                                    <button class="btn btn-danger btn-sm ms-2"
+                                        style="background-color: #ff4444; border: none;"
+                                        onclick="deleteAttendance('{{ course_code }}', '{{ lecture.date.strftime('%Y-%m-%d') }}')">
+                                        <i class="fas fa-trash"></i> {{ t('delete') }}
+                                    </button>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Lecture Details Modal -->
+    <div class="modal fade" id="lectureDetailsModal" tabindex="-1" aria-labelledby="lectureDetailsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content"
+                style="background: rgba(26, 26, 46, 0.95); border: 2px solid rgba(0, 255, 255, 0.5);">
+                <div class="modal-header" style="border-bottom: 1px solid rgba(0, 255, 255, 0.3);">
+                    <h5 class="modal-title" id="lectureDetailsModalLabel" style="color: var(--neon-cyan);">
+                        <i class="fas fa-users"></i> {{ t('attendance_dashboard') }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalLoadingSpinner" class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--neon-cyan);"></i>
+                        <p class="mt-3 text-muted">Loading attendance data...</p>
+                    </div>
+                    <div id="modalContent" style="display: none;">
+                        <h6 style="color: var(--neon-cyan);" id="modalLectureInfo"></h6>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-dark table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th><i class="fas fa-user"></i> {{ t('name') }}</th>
+                                        <th><i class="fas fa-id-badge"></i> {{ t('student_id') }}</th>
+                                        <th><i class="fas fa-clock"></i> {{ t('date') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modalStudentTableBody">
+                                    <!-- Student rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid rgba(0, 255, 255, 0.3);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> {{ t('cancel') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Background Image Override */
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url("{{ url_for('static', filename='images/giris.webp') }}") no-repeat center center;
+        background-size: cover;
+        opacity: 0.3;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .course-meta {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.95rem;
+    }
+
+    .btn-outline-secondary {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 8px 16px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--neon-cyan);
+        color: var(--neon-cyan);
+    }
+
+    .stat-card-large {
+        background: rgba(26, 26, 46, 0.8);
+        border: 2px solid rgba(0, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card-large::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .stat-card-large:hover {
+        transform: translateY(-10px) scale(1.05);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+    }
+
+    .stat-card-large:hover::before {
+        opacity: 1;
+    }
+
+    .stat-icon-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: #000;
+        margin: 0 auto 1rem;
+    }
+
+    .stat-content-large {
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-label {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stat-value {
+        font-size: 3rem;
+        margin: 0;
+        color: var(--neon-cyan);
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        text-shadow: 0 0 20px var(--neon-cyan);
+    }
+
+    .progress-container {
+        padding: 20px;
+    }
+
+    .progress-bar-custom {
+        width: 100%;
+        height: 40px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid rgba(0, 255, 255, 0.3);
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ffff, #0099ff);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: width 1s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+        0% {
+            left: -100%;
+        }
+
+        100% {
+            left: 100%;
+        }
+    }
+
+    .progress-text {
+        color: #000;
+        font-weight: 700;
+        font-size: 1.2rem;
+        font-family: 'Orbitron', sans-serif;
+        position: relative;
+        z-index: 1;
+    }
+
+    .table {
+        margin: 0;
+    }
+
+    .table thead th {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(0, 255, 255, 0.2);
+        color: var(--neon-cyan);
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+    .table tbody td {
+        border-color: rgba(0, 255, 255, 0.1);
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr.lecture-completed {
+        background: rgba(0, 255, 0, 0.03);
+    }
+
+    .table tbody tr.lecture-upcoming {
+        background: rgba(255, 255, 0, 0.03);
+    }
+
+    .table tbody tr:hover {
+        background: rgba(0, 255, 255, 0.1) !important;
+        transform: scale(1.01);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+    .badge-completed {
+        background: linear-gradient(45deg, #00ff00, #00aa00);
+        color: #000;
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    }
+
+    .badge-in-progress {
+        background: linear-gradient(45deg, #00ffff, #0099ff);
+        color: #000;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    }
+
+    .badge-ready {
+        background: linear-gradient(45deg, #0099ff, #6600ff);
+        color: #fff;
+        box-shadow: 0 0 15px rgba(102, 0, 255, 0.5);
+        animation: pulse-glow 2s infinite;
+    }
+
+    @keyframes pulse-glow {
+
+        0%,
+        100% {
+            box-shadow: 0 0 15px rgba(102, 0, 255, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 25px rgba(102, 0, 255, 0.8);
+        }
+    }
+
+    .badge-upcoming {
+        background: linear-gradient(45deg, #ffd700, #ffaa00);
+        color: #000;
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+
+    .badge-unknown {
+        background: rgba(100, 100, 100, 0.5);
+        color: #fff;
+    }
+
+    .btn-view-details {
+        background: linear-gradient(45deg, #00ffff, #0099ff);
+        border: none;
+        color: #000;
+        padding: 6px 12px;
+        border-radius: 5px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .btn-view-details:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+
+    .btn-export-excel {
+        background: linear-gradient(45deg, #00ff00, #00aa00);
+        border: none;
+        color: #000;
+        padding: 6px 12px;
+        border-radius: 5px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        margin-left: 5px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-export-excel:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        color: #000;
+        text-decoration: none;
+    }
+
+    .count-present {
+        color: #00ff00;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+
+    .count-absent {
+        color: #ff0000;
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+
+    .mini-progress {
+        width: 100px;
+        height: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 5px;
+        overflow: hidden;
+        display: inline-block;
+        margin-right: 10px;
+        vertical-align: middle;
+    }
+
+    .mini-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00ff00, #00aa00);
+        border-radius: 5px;
+        transition: width 0.5s ease;
+    }
+
+    .action-section {
+        background: rgba(26, 26, 46, 0.8);
+        border: 2px solid rgba(0, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+    }
+
+    .btn-start-session {
+        background: linear-gradient(45deg, #00ffff, #0099ff);
+        border: none;
+        color: #000;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        padding: 20px 60px;
+        border-radius: 50px;
+        text-transform: uppercase;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    }
+
+    .btn-start-session::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .btn-start-session:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
+    }
+
+    .btn-start-session:hover::before {
+        left: 100%;
+    }
+
+    .btn-start-session:active {
+        transform: scale(1.05);
+    }
+
+    .duration-form-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .duration-input {
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid rgba(0, 255, 255, 0.3);
+        color: var(--neon-cyan);
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        padding: 15px;
+        border-radius: 10px;
+        font-family: 'Orbitron', sans-serif;
+        transition: all 0.3s ease;
+    }
+
+    .duration-input:focus {
+        background: rgba(0, 0, 0, 0.7);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+        outline: none;
+        color: var(--neon-cyan);
+    }
+
+    .duration-input::placeholder {
+        color: rgba(0, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle view details buttons
+    document.addEventListener('DOMContentLoaded', function () {
+        const viewButtons = document.querySelectorAll('.btn-view-details');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const courseCode = this.getAttribute('data-course-code');
+                const courseName = this.getAttribute('data-course-name');
+                const lectureDate = this.getAttribute('data-lecture-date');
+                const weekNum = this.getAttribute('data-week-num');
+                openLectureDetails(courseCode, lectureDate, weekNum, courseName);
+            });
+        });
+    });
+
+    async function openLectureDetails(courseCode, lectureDate, weekNum, courseName) {
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('lectureDetailsModal'));
+        modal.show();
+
+        // Show loading spinner
+        document.getElementById('modalLoadingSpinner').style.display = 'block';
+        document.getElementById('modalContent').style.display = 'none';
+
+        try {
+            // Fetch attendance data
+            const response = await fetch(`/api/get_lecture_details/${courseCode}/${lectureDate}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Update modal title
+                document.getElementById('modalLectureInfo').textContent =
+                    `${courseName} - Day ${weekNum} - ${lectureDate}`;
+
+                // Populate table
+                const tbody = document.getElementById('modalStudentTableBody');
+                if (data.students.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="fas fa-user-slash fa-2x mb-2" style="opacity: 0.3;"></i>
+                                <p>No students attended this lecture</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = data.students.map((student, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><strong>${student.name}</strong></td>
+                            <td><code>${student.student_id}</code></td>
+                            <td><small class="text-muted">${student.marked_at}</small></td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Hide loading, show content
+                document.getElementById('modalLoadingSpinner').style.display = 'none';
+                document.getElementById('modalContent').style.display = 'block';
+            } else {
+                throw new Error(data.message || 'Failed to load data');
+            }
+        } catch (error) {
+            console.error('Error fetching lecture details:', error);
+            const tbody = document.getElementById('modalStudentTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>Failed to load attendance data</p>
+                        <small>${error.message}</small>
+                    </td>
+                </tr>
+            `;
+            document.getElementById('modalLoadingSpinner').style.display = 'none';
+            document.getElementById('modalContent').style.display = 'block';
+        }
+    }
+
+    async function startAttendance() {
+        Swal.fire({
+            title: "{{ t('start_attendance_mode') }}",
+            html: `{{ t('please_wait') }}`,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        try {
+            const response = await fetch('/start_attendance_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    // Send a very large duration to bypass simple limit checks if we haven't updated backend completely yet, 
+                    // or just a flag. For now sending a large number that we will handle in backend.
+                    duration: 999999
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: "{{ t('error') }}",
+                    text: "{{ t('error') }}"
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: "{{ t('error') }}",
+                text: "{{ t('error') }}"
+            });
+        }
+    }
+    async function deleteAttendance(courseCode, dateStr) {
+        if (!dateStr) return;
+
+        const result = await Swal.fire({
+            title: "{{ t('confirm_delete') }}",
+            text: "{{ t('cannot_undo') }}",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4444',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: "{{ t('yes') }}",
+            cancelButtonText: "{{ t('cancel') }}",
+            background: '#1a1a2e',
+            color: '#fff'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                Swal.showLoading();
+                const response = await fetch(`/api/delete_attendance/${courseCode}/${dateStr}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    await Swal.fire({
+                        title: "{{ t('deleted') }}",
+                        text: "{{ t('success') }}",
+                        icon: 'success',
+                        background: '#1a1a2e',
+                        color: '#fff'
+                    });
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: "{{ t('error') }}",
+                    text: 'Error: ' + error.message,
+                    icon: 'error',
+                    background: '#1a1a2e',
+                    color: '#fff'
+                });
+            }
+        }
+    }
+</script>
+{% endblock %}

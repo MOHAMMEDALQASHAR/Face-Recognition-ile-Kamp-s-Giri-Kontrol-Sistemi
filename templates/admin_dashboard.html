@@ -1,0 +1,382 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ t('admin_dashboard_title') }} - {{ t('page_title') }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="neon-text mb-2">
+                        <i class="fas fa-tachometer-alt"></i>
+                        {{ t('admin_dashboard_title') }}
+                    </h1>
+                    <p class="text-muted">{{ t('system_management') }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-home"></i> {{ t('gateway') }}
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt"></i> {{ t('logout') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(45deg, #00ffff, #0099ff);">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalStudents">0</h3>
+                    <p>{{ t('total_students') }}</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="cyber-card">
+                <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="students-tab" data-bs-toggle="tab"
+                            data-bs-target="#students" type="button">
+                            <i class="fas fa-users"></i> {{ t('manage_students') }}
+                        </button>
+                    </li>
+
+                </ul>
+
+                <div class="tab-content" id="adminTabsContent">
+                    <!-- Tab 1: Manage Students -->
+                    <div class="tab-pane fade show active" id="students" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 style="color: var(--neon-cyan); margin: 0;">
+                                <i class="fas fa-user-graduate"></i> {{ t('student_management') }}
+                            </h4>
+                            <a href="{{ url_for('register') }}" class="btn btn-cyber">
+                                <i class="fas fa-user-plus me-2"></i>
+                                {{ t('add_student') }}
+                            </a>
+                        </div>
+
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag"></i> #</th>
+                                    <th><i class="fas fa-user"></i> {{ t('name') }}</th>
+                                    <th><i class="fas fa-id-badge"></i> {{ t('student_id') }}</th>
+                                    <th><i class="fas fa-calendar"></i> {{ t('registered_date') }}</th>
+                                    <th><i class="fas fa-cog"></i> {{ t('actions') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                        <p>{{ t('loading_students') }}</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-outline-secondary {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--neon-cyan);
+        color: var(--neon-cyan);
+    }
+
+    .btn-outline-danger {
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: #fff;
+        box-shadow: 0 0 20px rgba(220, 53, 69, 0.5);
+    }
+
+    .stat-card {
+        background: rgba(26, 26, 46, 0.8);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+    }
+
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #000;
+    }
+
+    .stat-content h3 {
+        font-size: 2.5rem;
+        margin: 0;
+        color: var(--neon-cyan);
+        font-family: 'Orbitron', sans-serif;
+    }
+
+    .stat-content p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+    }
+
+    .nav-tabs .nav-link {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 12px 25px;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: var(--neon-cyan);
+        border-bottom-color: rgba(0, 255, 255, 0.5);
+    }
+
+    .nav-tabs .nav-link.active {
+        background: rgba(0, 255, 255, 0.1);
+        color: var(--neon-cyan);
+        border-bottom-color: var(--neon-cyan);
+    }
+
+    .table {
+        margin: 0;
+    }
+
+    .table thead th {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(0, 255, 255, 0.2);
+        color: var(--neon-cyan);
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+    .table tbody td {
+        border-color: rgba(0, 255, 255, 0.1);
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+        background: rgba(0, 255, 255, 0.05);
+    }
+
+    .btn-delete {
+        background: linear-gradient(45deg, #dc3545, #c82333);
+        border: none;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 5px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(220, 53, 69, 0.5);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let studentsData = [];
+
+
+    // Load data on page load
+    window.addEventListener('load', async () => {
+        await loadStudents();
+
+
+    });
+
+    // ==================== STUDENTS TAB ====================
+
+    async function loadStudents() {
+        try {
+            const response = await fetch('/api/get_all_students');
+            const data = await response.json();
+
+            if (data.success) {
+                studentsData = data.students;
+                document.getElementById('totalStudents').textContent = data.total;
+                renderStudentTable();
+            } else {
+                showError("{{ t('failed_delete') }}");
+            }
+        } catch (error) {
+            console.error('Error loading students:', error);
+            showError("{{ t('failed_delete') }}");
+        }
+    }
+
+    function renderStudentTable() {
+        const tbody = document.getElementById('studentTableBody');
+
+        if (studentsData.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                    <i class="fas fa-users fa-2x mb-3" style="opacity: 0.3;"></i>
+                    <p>{{ t('no_students_yet') }}</p>
+                    <small>{{ t('click_to_add')|safe }}</small>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = studentsData.map((student, index) => `
+        <tr>
+            <td>${index + 1}</td>
+            <td><strong>${student.name}</strong></td>
+            <td><code>${student.student_id}</code></td>
+            <td>
+                <small class="text-muted">
+                    ${student.registered_at ? formatDate(student.registered_at) : 'N/A'}
+                </small>
+            </td>
+            <td>
+                <button onclick="deleteStudent('${student.student_id}', '${student.name}')" class="btn-delete">
+                    <i class="fas fa-trash-alt me-1"></i> {{ t('delete') }}
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    }
+
+    async function deleteStudent(studentId, studentName) {
+        const result = await Swal.fire({
+            title: "{{ t('confirm_delete') }}",
+            html: `
+            <p>{{ t('confirm_delete') }}</p>
+            <p><strong>${studentName}</strong> (ID: ${studentId})?</p>
+            <p class="text-danger small">{{ t('cannot_undo') }}</p>
+        `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: "{{ t('yes') }}",
+            cancelButtonText: "{{ t('cancel') }}",
+            confirmButtonColor: '#dc3545'
+        });
+
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: "{{ t('deleting') }}",
+                html: "{{ t('please_wait') }}",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/delete_student/${studentId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: "{{ t('deleted') }}",
+                        text: data.message,
+                        timer: 2000
+                    });
+
+                    await loadStudents();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: "{{ t('error') }}",
+                        text: data.message
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: "{{ t('error') }}",
+                    text: "{{ t('failed_delete') }}"
+                });
+            }
+        }
+    }
+
+
+
+    // ==================== SHARED FUNCTIONS ====================
+
+
+
+    function formatDate(timestamp) {
+        if (!timestamp || !timestamp._seconds) return 'N/A';
+        const date = new Date(timestamp._seconds * 1000);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+
+    function showError(message) {
+        Swal.fire({
+            icon: 'error',
+            title: "{{ t('error') }}",
+            text: message
+        });
+    }
+</script>
+{% endblock %}
