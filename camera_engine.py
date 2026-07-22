@@ -3,10 +3,23 @@ High-Performance Camera Engine for Face Attendance System
 Uses MediaPipe for face detection and DeepFace for face recognition
 """
 
-import cv2
-import mediapipe as mp
+try:
+    import cv2
+except Exception:
+    cv2 = None
+
+try:
+    import mediapipe as mp
+except Exception:
+    mp = None
+
 import numpy as np
-from deepface import DeepFace
+
+try:
+    from deepface import DeepFace
+except Exception:
+    DeepFace = None
+
 import threading
 import time
 from datetime import datetime
@@ -23,12 +36,17 @@ class CameraEngine:
     
     def __init__(self, mongo_config_path: str = "mongo_config.json"):
         # Initialize MediaPipe Face Detection
-        self.mp_face_detection = mp.solutions.face_detection
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.face_detection = self.mp_face_detection.FaceDetection(
-            model_selection=0,  # 0 for short-range (< 2m), 1 for full-range
-            min_detection_confidence=0.5
-        )
+        if mp:
+            self.mp_face_detection = mp.solutions.face_detection
+            self.mp_drawing = mp.solutions.drawing_utils
+            self.face_detection = self.mp_face_detection.FaceDetection(
+                model_selection=0,  # 0 for short-range (< 2m), 1 for full-range
+                min_detection_confidence=0.5
+            )
+        else:
+            self.mp_face_detection = None
+            self.mp_drawing = None
+            self.face_detection = None
         
         # Initialize MongoDB Database
         self.db = MongoDatabaseAdapter(mongo_config_path)
